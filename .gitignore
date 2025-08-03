@@ -1,0 +1,48 @@
+# ========== Visual Studio ==========
+.vs/
+*.ipch
+*.VC.db
+*.sdf
+*.suo
+*.user
+*.cache
+
+# ========== Build folders ==========
+x64/
+build/
+Release/
+Debug/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.log
+
+# ========== OpenCV 動態連結與除錯符號 ==========
+opencv_world*.dll
+opencv_world*.pdb
+
+# ========== 大型模型或資源 ==========
+*.obj      # 若是模型，這是常見副檔名
+*.fbx
+*.glb
+*.gltf
+*.blend
+
+# ========== CMake / Ninja ==========
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+compile_commands.json
+
+# 忽略所有 Release、Debug、tlog、pch、lib 等建置產物
+**/Release/
+**/Debug/
+**/*.lib
+**/*.dll
+**/*.pch
+**/*.log
+**/*.tlog/
+**/*.lastbuildstate
+**/*.vcxproj.FileListAbsolute.txt
