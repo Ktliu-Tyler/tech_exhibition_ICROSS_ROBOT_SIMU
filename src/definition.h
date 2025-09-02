@@ -5,7 +5,7 @@
 #include <shared_mutex>
 #include "Connecter.hpp"
 
-#include <Eigen/Dense>
+//#include <Eigen/Dense>
 
 #include <omp.h>
 
@@ -15,12 +15,12 @@
 #define M_PI 3.14159265358979323846f
 #endif
 
-#define WINDOW_WIDTH 1600 //2500
-#define WINDOW_HEIGHT 900
+// #define WINDOW_WIDTH 1600 //2500
+// #define WINDOW_HEIGHT 900
 
 #define BUFFER_LEN 512
 
-#define TARGET_IP "192.168.50.111" //"127.0.0.1"
+#define TARGET_IP "127.0.0.1"//"192.168.50.111" //"127.0.0.1"
 #define TARGET_PORT 5005
 
 

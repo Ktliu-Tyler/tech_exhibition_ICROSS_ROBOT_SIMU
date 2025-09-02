@@ -17,18 +17,30 @@ public:
     HapticDevice*  haptic = nullptr;
 
     bool hit = false;
+    bool prehit = false;
     bool hitDeep = false;
+    bool clawClose = false;
+    bool catched = false;
+    int OutOfWound = true;
+	bool hitvessel = false;
+	int mode = 0; // 0: no, 1: out, 2: in, 3:bound
+    int num = 0;
     
-	hduVector3Dd force = hduVector3Dd(0.0f, 0.0f, 0.0f);
-    // 鉗子開合角度控制
+	glm::vec3 force = glm::vec3(0.0f);
+	glm::vec3 forceVec = glm::vec3(0.0f);
+    float forceCount = 0.0f;
+    float force_value = 0.0f;
+    
     float clawAngle = 0.0f;
     float targetClawAngle = 20.0f;
-    float clawSpeed = 30.0f; // 每秒最大變化角度
+    float clawSpeed = 60.0f; // 每秒最大變化角度
+    float penetrate = 0.0f;
     glm::vec3 deltaPos = glm::vec3(0.0f);
     glm::vec3 deltaRot = glm::vec3(0.0f);
     glm::vec3 preRot = glm::vec3(0.0f);
 
-
+	glm::vec3 hitdir = glm::vec3(0.0f, 0.0f, 0.0f); // 碰撞方向
+    glm::vec3 hitpoint = glm::vec3(0.0f, 0.0f, 0.0f);
 
     glm::vec3 OPos = glm::vec3(0.0f);
     glm::vec3 ORot = glm::vec3(0.0f);
@@ -36,15 +48,18 @@ public:
     // 鉗爪相對於body的本地偏移位置
     glm::vec3 clawUpperOffset = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 clawLowerOffset = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 forcepTail = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 clawUpperPeak = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 clawLowerPeak = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 clawHitpointU = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 clawHitpointL = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 clawHitpoint = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 prePos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 prePosFORWOUND = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 prePosReal = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 penetrateMask = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 speed = glm::vec3(0.0f, 0.0f, 0.0f);
-	btSphereOBJ* objB = nullptr; // 用於碰撞檢測的球形物件
+	btCapsuleOBJ* objB = nullptr; // 用於碰撞檢測的球形物件
 	btCapsuleOBJ* objU = nullptr; // 上鉗爪的膠囊形物件
 	btCapsuleOBJ* objL = nullptr; // 下鉗爪的膠囊形物件
 
@@ -56,6 +71,7 @@ public:
 		OPos = position;
 		ORot = rotation;
 		prePos = position;
+		prePosFORWOUND = position;
         prePosReal = position;
 
         // 創建主體模型
@@ -77,7 +93,17 @@ public:
         reset();
     }
 
-    // === 位置和旋轉控制 ===
+    glm::vec3 getUDPPosition() {
+		glm::vec3 pos = getWorldPosition()*25.0f;
+		glm::vec3 UDPpos = glm::vec3(pos.x + 350, -pos.z -60, pos.y + 225);
+		//std::cout << "UDP Position: " << UDPpos.x << ", " << UDPpos.y << ", " << UDPpos.z << std::endl;
+		return UDPpos;
+    }
+
+
+    glm::vec3 getForce() {
+        return force;
+    }
 
     // 設置整個鉗子的世界位置
     void setWorldPosition(const glm::vec3& position) {
@@ -244,13 +270,14 @@ public:
         updateClawPositions();
     }
 
-    // 更新鉗子狀態
+
     void updateClaw(float deltaTime) {
-        // 更新鉗爪角度動畫
-        if (clawAngle < targetClawAngle && !hit) {
-            clawAngle += clawSpeed * deltaTime;
-            if (clawAngle > targetClawAngle) {
-                clawAngle = targetClawAngle;
+        if (clawAngle < targetClawAngle) {
+            if (!hit || catched) {
+                clawAngle += clawSpeed * deltaTime;
+                if (clawAngle > targetClawAngle) {
+                    clawAngle = targetClawAngle;
+                }
             }
         }
         else if (clawAngle > targetClawAngle && !hit) {
@@ -263,26 +290,35 @@ public:
         // 更新鉗爪位置
         updateClawPositions(); 
 		glm::vec3 worldPos = getWorldPosition();
-        clawUpperPeak = worldPos + clawUpper->getWorldAxisX() * 1.0f;
-        clawLowerPeak = worldPos + clawLower->getWorldAxisX() * 1.0f;
+        clawUpperPeak = worldPos + clawUpper->getWorldAxisX() * 1.3f;
+        clawLowerPeak = worldPos + clawLower->getWorldAxisX() * 1.3f;
+		forcepTail = getWorldPosition() - body->getWorldAxisX() * 5.0f; // 鉗子尾部位置
 		//std::cout << "clawUpperPeak IN: " << clawUpperPeak.x << ", " << clawUpperPeak.y << ", " << clawUpperPeak.z << std::endl;
-		clawHitpointU = (clawUpperPeak + worldPos) / 2.0f;
-		clawHitpointL = (clawLowerPeak + worldPos) / 2.0f;
+		clawHitpointU = (3.0f*clawUpperPeak + 1.0f*worldPos) / 4.0f;
+		clawHitpointL = (3.0f*clawLowerPeak + 1.0f*worldPos) / 4.0f;
+		clawHitpoint = (clawHitpointU + clawHitpointL) / 2.0f; 
+
+        if (clawAngle < 20.0f) {
+			clawClose = true; 
+		}
+		else {
+            clawClose = false;
+        }
     }
 
     void updateMesh(btCollisionWorld* collisionWorld) {
         clawLower->updateMesh(collisionWorld);
         clawUpper->updateMesh(collisionWorld);
-        if (!objB) {
-            objB = new btSphereOBJ(getWorldPosition(), 0.3f);
+        if (true) {
+            objB = new btCapsuleOBJ(getWorldPosition(), forcepTail, 0.1f);
         }
-        if (!objU) {
-            objU = new btCapsuleOBJ(getWorldPosition(), clawUpperPeak, 0.02f);
+        if (true) {
+            objU = new btCapsuleOBJ(getWorldPosition(), clawUpperPeak, 0.005f);
         }
-        if (!objL) {
-            objL = new btCapsuleOBJ(getWorldPosition(), clawLowerPeak, 0.02f);
+        if (true) {
+            objL = new btCapsuleOBJ(getWorldPosition(), clawLowerPeak, 0.005f);
         }
-        objB->update(getWorldPosition());
+        objB->update(getWorldPosition(), forcepTail);
         objU->update(getWorldPosition(), clawUpperPeak);
         objL->update(getWorldPosition(), clawLowerPeak);
     }
@@ -293,21 +329,24 @@ public:
         clawLower->bulletCollisionObject->setWorldTransform(btTransform(btQuaternion(0, 0, 0, 1), btVector3(clawLower->getWorldPosition().x, clawLower->getWorldPosition().y, clawLower->getWorldPosition().z)));
 		clawUpper->bulletCollisionObject->setWorldTransform(btTransform(btQuaternion(0, 0, 0, 1), btVector3(clawUpper->getWorldPosition().x, clawUpper->getWorldPosition().y, clawUpper->getWorldPosition().z)));
 		if (!objB) {
-			objB = new btSphereOBJ(getWorldPosition(), 0.3f);
+			//objB = new btSphereOBJ(getWorldPosition(), 0.3f);
 		}
-		objB->update(getWorldPosition());
+		//objB->update(getWorldPosition());
+       
 	}
 
     void updateCollision() {
-        if (hit) {
-			haptic->setForce(force); 
+        if (hit && forceCount != 0) {
+            force = forceVec / forceCount;
+            hitdir = force;
+			haptic->setForce(hduVector3Dd(force.x, force.y, force.z));
         }
         else {
-            haptic->setForce(hduVector3Dd(0.0f, 0.0f, 0.0f)); // 如果沒有碰撞，則不施加力
-            if (!hitDeep) {
-				penetrateMask = prePos-getWorldPosition();
-                prePos = getWorldPosition();
+            haptic->setForce(hduVector3Dd(0.0f, 0.0f, 0.0f)); // 如果沒有碰撞，則不施加力    
+            if (OutOfWound) {
+                prePosFORWOUND = getWorldPosition();
             }
+            prePos = getWorldPosition();
         }
 		speed = getWorldPosition() - prePosReal; // 計算速度
         prePosReal = getWorldPosition();
@@ -326,11 +365,11 @@ public:
             setRelatedWorldPosition(deltaPos);
             
             if (hit) {
-                preRot = rotate; // 如果碰撞，則不旋轉
-				deltaRot = glm::vec3(0.0f, 0.0f, 0.0f); // 不計算旋轉增量
+                preRot = rotate;
+				deltaRot = glm::vec3(0.0f, 0.0f, 0.0f); 
 			}
             else {
-				deltaRot = rotate - preRot; // 計算旋轉增量
+				deltaRot = rotate - preRot; 
                 preRot = rotate;
             }
             //std::cout << "Forcep1 Rotate: " << rotate.x << ", " << rotate.y << ", " << rotate.z << std::endl;

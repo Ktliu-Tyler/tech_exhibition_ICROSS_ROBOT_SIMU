@@ -1,5 +1,8 @@
 #include "TextRenderer.h"
 #include <iostream>
+#include <codecvt>
+#include <locale>
+
 
 TextRenderer::TextRenderer(unsigned int screenWidth, unsigned int screenHeight) 
     : screenWidth(screenWidth), screenHeight(screenHeight), textShader(nullptr) {
@@ -54,15 +57,58 @@ bool TextRenderer::initialize(const std::string& fontPath, unsigned int fontSize
     return true;
 }
 
+//void TextRenderer::loadCharacters(unsigned int fontSize) {
+//    // 載入前128個ASCII字元
+//    for (unsigned char c = 0; c < 128; c++) {
+//        // 載入字元字形
+//        if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+//            std::cout << "ERROR::FREETYTPE: Failed to load Glyph " << c << std::endl;
+//            continue;
+//        }
+//
+//        // 生成紋理
+//        unsigned int texture;
+//        glGenTextures(1, &texture);
+//        glBindTexture(GL_TEXTURE_2D, texture);
+//        glTexImage2D(
+//            GL_TEXTURE_2D,
+//            0,
+//            GL_RED,
+//            face->glyph->bitmap.width,
+//            face->glyph->bitmap.rows,
+//            0,
+//            GL_RED,
+//            GL_UNSIGNED_BYTE,
+//            face->glyph->bitmap.buffer
+//        );
+//
+//        // 設定紋理選項
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//
+//        // 儲存字元供後續使用
+//        Character character = {
+//            texture,
+//            glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+//            glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+//            static_cast<unsigned int>(face->glyph->advance.x)
+//        };
+//        characters.insert(std::pair<char, Character>(c, character));
+//    }
+//    glBindTexture(GL_TEXTURE_2D, 0);
+//}
+
 void TextRenderer::loadCharacters(unsigned int fontSize) {
-    // 載入前128個ASCII字元
+    // 載入ASCII
     for (unsigned char c = 0; c < 128; c++) {
         // 載入字元字形
         if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph " << c << std::endl;
             continue;
         }
-
+        
         // 生成紋理
         unsigned int texture;
         glGenTextures(1, &texture);
@@ -78,13 +124,13 @@ void TextRenderer::loadCharacters(unsigned int fontSize) {
             GL_UNSIGNED_BYTE,
             face->glyph->bitmap.buffer
         );
-
+        
         // 設定紋理選項
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+        
         // 儲存字元供後續使用
         Character character = {
             texture,
@@ -92,10 +138,44 @@ void TextRenderer::loadCharacters(unsigned int fontSize) {
             glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
             static_cast<unsigned int>(face->glyph->advance.x)
         };
-        characters.insert(std::pair<char, Character>(c, character));
+        wchar_characters.insert(std::pair<char, Character>(c, character));
+    }
+    // 載入常用中文字
+    for (wchar_t c = 0x4E00; c <= 0x9FFF; c++) {
+        if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+            continue;
+        }
+        unsigned int texture;
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RED,
+            face->glyph->bitmap.width,
+            face->glyph->bitmap.rows,
+            0,
+            GL_RED,
+            GL_UNSIGNED_BYTE,
+            face->glyph->bitmap.buffer
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        Character character = {
+            texture,
+            glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+            glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+            static_cast<unsigned int>(face->glyph->advance.x)
+        };
+        // 注意：key型態要改成wchar_t
+        wchar_characters.insert(std::pair<wchar_t, Character>(c, character));
     }
     glBindTexture(GL_TEXTURE_2D, 0);
 }
+
 
 void TextRenderer::setupOpenGL() {
     // 配置VAO/VBO來渲染紋理四邊形
@@ -111,6 +191,9 @@ void TextRenderer::setupOpenGL() {
 }
 
 void TextRenderer::renderText(const std::string& text, float x, float y, float scale, glm::vec3 color) {
+    
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+    std::wstring wtext = conv.from_bytes(text);
     // 啟用混合以支援透明度
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -128,8 +211,8 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
 
     // 遍歷所有字元
     std::string::const_iterator c;
-    for (c = text.begin(); c != text.end(); c++) {
-        Character ch = characters[*c];
+    for (wchar_t c : wtext) {
+        Character ch = wchar_characters[c];
 
         float xpos = x + ch.bearing.x * scale;
         float ypos = y - (ch.size.y - ch.bearing.y) * scale;

@@ -8,12 +8,20 @@
 #include <GL/glew.h>
 #include <vector>
 
+enum class GameState {
+    MENU,
+    GAME,
+    GAME_SUCCESS,
+    PAUSE,
+    SETTINGS,
+    EXIT
+};
 
 struct MyResultCallback : public btCollisionWorld::ContactResultCallback {
     bool hit = false;
     btVector3 hitPoint;
     btVector3 hitNormal;
-    btScalar minDist = FLT_MAX;  // §ï¬°³Ì¤j­È
+    btScalar minDist = FLT_MAX;  // ï¿½ï¬°ï¿½Ì¤jï¿½ï¿½
     btTransform testTrans;
 
     MyResultCallback(const btTransform& t) : testTrans(t) {}
@@ -22,7 +30,7 @@ struct MyResultCallback : public btCollisionWorld::ContactResultCallback {
         const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override {
         hit = true;
 
-        // Á`¬O°O¿ý³Ìªñªº¸I¼²ÂI
+        
         if (cp.getDistance() < minDist) {
             minDist = cp.getDistance();
             hitPoint = cp.getPositionWorldOnB();
@@ -33,61 +41,62 @@ struct MyResultCallback : public btCollisionWorld::ContactResultCallback {
     }
 };
 
-struct MyResult2Callback : public btCollisionWorld::ContactResultCallback {
+class SurfaceNormalCallback : public btCollisionWorld::ContactResultCallback {
+public:
+    btTransform trans;
     bool hit = false;
     btVector3 hitPoint;
-    btVector3 hitNormal;
-    btScalar minDist = FLT_MAX;
-    btTransform testTrans;
-
-    std::vector<btVector3> normals;
-    // ·s¼W¡G¬ï³z²`«×
+	glm::vec3 hitPointGLM;
+    btVector3 surfaceNormal; 
+    btScalar minDistance = 0.05f;
     btScalar penetrationDepth = 0.0f;
 
-    // ·s¼W¡G¸I¼²ÂI¦bAª«¥ó¤Wªº¥@¬É®y¼Ð
-    btVector3 hitPointOnA;
+    SurfaceNormalCallback(btTransform t) : trans(t), hit(false) {}
 
-    // ·s¼W¡G¸I¼²ÂIªºª«¥ó«ü¼Ð
-    const btCollisionObject* objA = nullptr;
-    const btCollisionObject* objB = nullptr;
-
-    // ·s¼W¡G¸I¼²ÂIªº¯Á¤Þ
-    int partIdA = -1, partIdB = -1, indexA = -1, indexB = -1;
-
-    MyResult2Callback(const btTransform& t) : testTrans(t) {}
-
-    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+    btScalar addSingleResult(btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
         const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override {
-        hit = true;
-        normals.push_back(cp.m_normalWorldOnB);
-        if (cp.getDistance() < minDist) {
-            minDist = cp.getDistance();
-            penetrationDepth = -cp.getDistance(); // ­Y¬°­t­È§Y¬°¬ï³z²`«×
-            hitPoint = cp.getPositionWorldOnB();
-            hitPointOnA = cp.getPositionWorldOnA();
-            hitNormal = cp.m_normalWorldOnB;
-            objA = colObj0Wrap->getCollisionObject();
-            objB = colObj1Wrap->getCollisionObject();
-            partIdA = partId0; partIdB = partId1;
-            indexA = index0; indexB = index1;
+
+        if (cp.getDistance() < minDistance) {
+            minDistance = cp.getDistance();
+            hit = true;
+            hitPoint = cp.getPositionWorldOnA();
+			hitPointGLM = glm::vec3(hitPoint.x(), hitPoint.y(), hitPoint.z());
+            surfaceNormal = cp.m_normalWorldOnB;
+            penetrationDepth = -cp.getDistance();
+            if (cp.getDistance() > 0) {
+                penetrationDepth = 0.0f;
+            }
         }
         return 0;
     }
+    void reset() {
+        hit = false;
+        minDistance = FLT_MAX;
+        penetrationDepth = 0.0f;
+        hitPoint = btVector3(0, 0, 0);
+        surfaceNormal = btVector3(0, 1, 0);
+    }
 };
 
+class MyResult2Callback : public btCollisionWorld::ContactResultCallback {
+public:
+    btTransform trans;
+    bool hit = false;
+    btVector3 hitPoint;
+    btVector3 normal;  
 
+    MyResult2Callback(btTransform t) : trans(t), hit(false) {}
 
-//void DrawSquare(const glm::vec3& center, float length, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f)) {
-//    float half = length * 0.5f;
-//    glColor3f(color.r, color.g, color.b);
-//    glBegin(GL_QUADS);
-//    glVertex3f(center.x - half, center.y - half, center.z);
-//    glVertex3f(center.x + half, center.y - half, center.z);
-//    glVertex3f(center.x + half, center.y + half, center.z);
-//    glVertex3f(center.x - half, center.y + half, center.z);
-//    glEnd();
-//}
-
+    btScalar addSingleResult(btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) override {
+        hit = true;
+        hitPoint = cp.getPositionWorldOnA();  
+        normal = cp.m_normalWorldOnB;         
+        return 0;
+    }
+};
 
 class btSphereOBJ {
 public:
@@ -112,7 +121,6 @@ public:
     }
 };
 
-
 class btCapsuleOBJ {
 public:
     btVector3 Point;
@@ -122,12 +130,16 @@ public:
     btDefaultMotionState* MotionState;
     btRigidBody* Body;
 
-    // 2. ­pºâªø«×»P¥b®|
-    float radius = 1.0f;// ¨Ì¼Ò«¬
+    float radius = 1.0f;
     float length = 1.0f;
     float mass = 1.0f;
+    bool hit = false;
+    glm::vec3 hitpoint;
+	float hitdepth = -1.0f;
+	glm::vec3 arr[20] = { glm::vec3(0)};
     glm::vec3 center;
     glm::vec3 dir;
+	glm::vec3 hitdir = glm::vec3(0);
     glm::vec3 A;
     glm::vec3 B;
     glm::vec3 C;
@@ -140,6 +152,10 @@ public:
         A = a;
         B = b;
 		C = (A + B) / 2.0f;
+        for (int i = 0; i < 20; ++i) {
+            float t = static_cast<float>(i) / 19.0f; // 0~1, å…±20å€‹é»ž
+            arr[i] = (1.0f - t) * A + t * B;
+        }
         center = (a + b) * 0.5f;
         dir = glm::normalize(b - a);
         up = glm::vec3(0, 1, 0);
@@ -163,7 +179,7 @@ public:
 
     }
 
-    // 4. ­pºâ capsule ªº transform
+
     void update(const glm::vec3& a, const glm::vec3& b) {
         A = a;
         B = b;
@@ -171,6 +187,7 @@ public:
         dir = glm::normalize(b - a);
         up = glm::vec3(0, 1, 0);
         length = glm::distance(A, B);
+		//std::cout << "length: " << length << std::endl;
         glm::quat q = rotate();
         Trans.setOrigin(btVector3(center.x, center.y, center.z));
         Trans.setRotation(btQuaternion(q.x, q.y, q.z, q.w));
@@ -181,30 +198,24 @@ public:
     }
     
 
-    // ­pºâ±ÛÂà¶b»P¨¤«×
+   
     glm::quat rotate() {
         float cosTheta = glm::dot(up, dir);
         glm::vec3 rotationAxis;
         glm::quat q;
         if (cosTheta < -0.9999f) {
-            // 180«×¤Ï¦V¡A§ä¤@­Ó¥¿¥æ¦V¶q
             rotationAxis = glm::normalize(glm::cross(glm::vec3(1, 0, 0), up));
             if (glm::length(rotationAxis) < 0.01f)
                 rotationAxis = glm::normalize(glm::cross(glm::vec3(0, 0, 1), up));
-            // 180«×±ÛÂà
             q = glm::angleAxis(glm::pi<float>(), rotationAxis);
-            // ¨Ï¥Î q
         }
         else if (cosTheta > 0.9999f) {
-            // ´X¥G¦P¦V¡A¤£»Ý±ÛÂà
             q = glm::quat(1, 0, 0, 0);
-            // ¨Ï¥Î q
         }
         else {
             rotationAxis = glm::normalize(glm::cross(up, dir));
             float angle = acosf(cosTheta);
             q = glm::angleAxis(angle, rotationAxis);
-            // ¨Ï¥Î q
         }
 		return q;
     }
@@ -212,18 +223,15 @@ public:
 
 
 
-
-// §PÂ_ÂI¬O§_¦b mesh ¤º³¡¡]®g½uªk¡^
 inline bool MeshInside(const btVector3& testPoint, btCollisionWorld* collisionWorld) {
     btVector3 from = testPoint;
-    btVector3 to = from + btVector3(0, 10000, 0); // ¦V¤W«Ü»·
+    btVector3 to = from + btVector3(0, 10000, 0); 
     btCollisionWorld::AllHitsRayResultCallback rayCallback(from, to);
     collisionWorld->rayTest(from, to, rayCallback);
     return (rayCallback.m_hitPointWorld.size() % 2 == 1);
 }
 
 
-// §¨¤l±±¨îª¬ºA
 struct ForcepControl {
     bool moveForward = false;
     bool moveBackward = false;
@@ -241,7 +249,6 @@ struct ForcepControl {
     bool closeClaw = false;
 };
 
-// Äá¹³¾÷Ãþ§O
 class Camera {
 public:
     glm::vec3 position;
@@ -258,7 +265,7 @@ public:
 
     Camera(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f),
         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
-        float yaw = -90.0f, float pitch = -80.0f) :
+        float yaw = -90.0f, float pitch = -70.0f) :
         position(pos), worldUp(up), yaw(yaw), pitch(pitch),
         movementSpeed(2.5f), mouseSensitivity(0.1f), zoom(45.0f) {
         updateCameraVectors();
@@ -315,19 +322,9 @@ private:
 };
 
 
-
-
-
 #pragma once
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <GL/glew.h>
-
-// ¥þ°ìÀRºAÅÜ¼Æ
 static GLuint squareVAO = 0, squareVBO = 0, squareEBO = 0;
 static GLuint squareShader = 0;
-
-// Shader ­ì©l½X
 static const char* squareVert = R"(
 #version 330 core
 layout(location = 0) in vec3 aPos;
@@ -347,7 +344,6 @@ void main() {
 }
 )";
 
-// ½sÄ¶ shader
 inline GLuint CompileShader(GLenum type, const char* src) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &src, nullptr);
@@ -366,7 +362,7 @@ inline GLuint CreateProgram(const char* vs, const char* fs) {
     return prog;
 }
 
-// ªì©l¤Æ¡]¥u»Ý©I¥s¤@¦¸¡^
+
 inline void InitSquare() {
     if (squareVAO) return;
     float vertices[] = {
@@ -388,9 +384,9 @@ inline void InitSquare() {
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
     squareShader = CreateProgram(squareVert, squareFrag);
-}
+};
 
-// ¥D¨ç¦¡¡Gµe¥¿¤è§Î
+
 inline void DrawSquare(
     const glm::vec3& center,
     float length,
@@ -411,3 +407,74 @@ inline void DrawSquare(
     glBindVertexArray(0);
     glUseProgram(0);
 }
+
+
+#pragma once
+static unsigned int arrowVAO = 0, arrowVBO = 0;
+static unsigned int arrowShader = 0;
+
+static const char* arrowVert = R"(#version 330 core
+layout(location = 0) in vec3 aPos;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+void main() {
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+)";
+
+static const char* arrowFrag = R"(#version 330 core
+out vec4 FragColor;
+uniform vec3 color;
+void main() {
+    FragColor = vec4(color, 1.0);
+}
+)";
+
+inline void InitArrow() {
+    if (arrowVAO) return;
+
+    glGenVertexArrays(1, &arrowVAO);
+    glGenBuffers(1, &arrowVBO);
+    glBindVertexArray(arrowVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, arrowVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6, nullptr, GL_DYNAMIC_DRAW); // 2 points * 3 floats
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    arrowShader = CreateProgram(arrowVert, arrowFrag);
+}
+
+inline void DrawArrow(
+    const glm::vec3& start,
+    const glm::vec3& end,
+    const glm::vec3& color,
+    const glm::mat4& view,
+    const glm::mat4& projection)
+{
+    if (!arrowVAO) InitArrow();
+
+    float vertices[] = {
+        start.x, start.y, start.z,
+        end.x,   end.y,   end.z
+    };
+
+    glUseProgram(arrowShader);
+    glm::mat4 model = glm::mat4(1.0f);
+    glUniformMatrix4fv(glGetUniformLocation(arrowShader, "model"), 1, GL_FALSE, &model[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(arrowShader, "view"), 1, GL_FALSE, &view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(arrowShader, "projection"), 1, GL_FALSE, &projection[0][0]);
+    glUniform3fv(glGetUniformLocation(arrowShader, "color"), 1, &color[0]);
+
+    glBindBuffer(GL_ARRAY_BUFFER, arrowVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+    glBindVertexArray(arrowVAO);
+    glDrawArrays(GL_LINES, 0, 2);
+    glBindVertexArray(0);
+
+    glUseProgram(0);
+}
+
+

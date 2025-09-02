@@ -51,10 +51,15 @@ struct Transform {
 // 紋理載入函數
 inline unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false) {
     string filename = string(path);
+    size_t texPos = filename.find("texture");
+    if (texPos != string::npos) {
+        filename = filename.substr(texPos);
+    }
+    std::cout << filename << std::endl;
     filename = directory + '/' + filename;
 
     std::cout << "Loading texture: " << filename << std::endl;
-
+    
     unsigned int textureID;
     glGenTextures(1, &textureID);
 
@@ -143,6 +148,9 @@ public:
         markWorldMatrixDirty();
         
     }
+    
+    
+
 
     // === 變換操作 ===
 

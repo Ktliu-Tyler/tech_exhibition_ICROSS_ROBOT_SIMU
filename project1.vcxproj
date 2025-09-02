@@ -105,6 +105,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\Liu KT\Desktop\lab\vcpkg\installed\x64-windows-static\include;C:\Users\Liu KT\Desktop\lab\vcpkg\installed\x64-windows\include\bullet;C:\Users\Liu KT\Desktop\lab\project1\include\opencv2;C:\Users\Liu KT\Desktop\lab\project1\include\OpenHaptic\utilities\include;C:\Users\Liu KT\Desktop\lab\project1\include\OpenHaptic\include;C:\Users\Liu KT\Desktop\lab\project1\include;C:\Users\Liu KT\Desktop\lab\project1\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,6 +126,7 @@ assimp-vc140-mt.lib;legacy_stdio_definitions.lib;hd.lib;hl.lib;HapticMouse.lib;h
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\Liu KT\Desktop\lab\vcpkg\installed\x64-windows-static\include;C:\Users\Liu KT\Desktop\lab\vcpkg\installed\x64-windows\include\bullet;C:\Users\Liu KT\Desktop\lab\project1\include\opencv2;C:\Users\Liu KT\Desktop\lab\project1\include\OpenHaptic\utilities\include;C:\Users\Liu KT\Desktop\lab\project1\include\OpenHaptic\include;C:\Users\Liu KT\Desktop\lab\project1\include;C:\Users\Liu KT\Desktop\lab\project1\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,12 +141,13 @@ assimp-vc140-mt.lib;legacy_stdio_definitions.lib;hd.lib;hl.lib;HapticMouse.lib;h
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="engine_main.cpp" />
     <ClCompile Include="main_new.cpp" />
     <ClCompile Include="main_test.cpp" />
+    <ClCompile Include="src\Communication.cpp" />
     <ClCompile Include="src\GameEngine.cpp" />
+    <ClCompile Include="src\iCROSS.cpp" />
     <ClCompile Include="src\TextRenderer.cpp" />
-    <ClCompile Include="src\UIManager.cpp" />
+    <ClCompile Include="src\UIManager_chi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Constant.h" />
@@ -157,6 +160,10 @@ assimp-vc140-mt.lib;legacy_stdio_definitions.lib;hd.lib;hl.lib;HapticMouse.lib;h
     <ClInclude Include="include\TextRenderer.h" />
     <ClInclude Include="include\Tool.h" />
     <ClInclude Include="include\UIManager.h" />
+    <ClInclude Include="src\Communication.hpp" />
+    <ClInclude Include="src\definition.h" />
+    <ClInclude Include="src\iCROSS.h" />
+    <ClInclude Include="transfer_function.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

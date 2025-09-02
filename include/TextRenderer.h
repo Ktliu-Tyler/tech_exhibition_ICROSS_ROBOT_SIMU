@@ -54,6 +54,7 @@ public:
 
 private:
     std::map<char, Character> characters;
+    std::map<wchar_t, Character> wchar_characters;
     std::map<std::string, TextBox> textBoxes;
     unsigned int VAO, VBO;
     Shader* textShader;

@@ -18,12 +18,6 @@
     <ClCompile Include="src\TextRenderer.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
-    <ClCompile Include="src\UIManager.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="engine_main.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
     <ClCompile Include="src\GameEngine.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
@@ -31,6 +25,15 @@
       <Filter>來源檔案</Filter>
     </ClCompile>
     <ClCompile Include="main_new.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Communication.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="src\iCROSS.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UIManager_chi.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,13 +59,25 @@
     <ClInclude Include="include\TextRenderer.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="include\UIManager.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="include\GameEngine.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="include\Constant.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Communication.hpp">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="src\definition.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="src\iCROSS.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="transfer_function.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="include\UIManager.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
